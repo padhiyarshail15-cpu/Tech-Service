@@ -1,2 +1,2 @@
 # Tech-Service
-This Repository created to build Web app using React to build Tech service provider app
+This Repository created to build Tech service provider app (Web) app using React.
