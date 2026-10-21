@@ -7,10 +7,6 @@ import "./App.css";
 function App() {
   const [count, setCount] = useState(0);
 
-  // ❌ Deliberate lint errors for testing Jenkins
-  let unusedValue = 5;
-  if (count == 0) debugger;
-
   return (
     <>
       <section id="center">
