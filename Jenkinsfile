@@ -40,8 +40,8 @@ pipeline {
       }
     }
 
-    stage('Build (PR)') {
-      when { changeRequest target: 'main' }
+    stage('Build') {
+      when { not { branch 'main' } }
       steps {
         nvmSh 'yarn build'
       }
