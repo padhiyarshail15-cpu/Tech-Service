@@ -80,10 +80,13 @@ e.g. `feat: add service list`, `fix: handle empty response`, `test: cover counte
 
 ```
 Install → Lint (+report) → Format Check → Typecheck → Unit Tests + Coverage
-        → SonarQube Cloud Analysis + Quality Gate
+        → SonarQube Cloud Analysis + Quality Gate   (main and pull requests only)
         → branches: Build
         → main:     Release (semantic-release) → Deploy to Vercel
 ```
+
+SonarQube Cloud's Free plan analyses only the main branch and pull requests, so
+plain feature-branch builds skip the Sonar stage. Open a PR to get the Sonar check.
 
 ## Releases and versioning
 
@@ -142,7 +145,9 @@ One-time setup:
    - _Manage Jenkins → System → SonarQube servers_: name `sonarcloud`, URL `https://sonarcloud.io`,
      token `sonarcloud-token`.
    - _Manage Jenkins → Tools → SonarQube Scanner installations_: name `sonar-scanner`, install automatically.
-   - Use a **Multibranch Pipeline** job so branches and pull requests are analysed and reported on GitHub.
+   - Use a **Multibranch Pipeline** job with **Discover pull requests from origin**, so PRs are
+     analysed and reported on GitHub. Optionally set branch discovery to
+     _Exclude branches that are also filed as PRs_ to avoid building the same code twice.
 
 Until this is done, run the build with the `RUN_SONAR` parameter unchecked.
 

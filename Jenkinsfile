@@ -74,7 +74,14 @@ pipeline {
     }
 
     stage('SonarQube Cloud Analysis + Quality Gate') {
-      when { expression { params.RUN_SONAR != false } }
+      // SonarQube Cloud Free plan analyses only the main branch and pull requests,
+      // so plain feature-branch builds skip this stage (open a PR to get the Sonar check).
+      when {
+        allOf {
+          expression { params.RUN_SONAR != false }
+          anyOf { branch 'main'; changeRequest() }
+        }
+      }
       steps {
         script {
           // Names must match: Manage Jenkins -> Tools ('sonar-scanner') and -> System ('sonarcloud')
