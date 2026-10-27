@@ -1,0 +1,9 @@
+# Owners are requested automatically as reviewers on PRs touching these paths.
+# Quality/tooling config changes need architect approval.
+*                          @padhiyarshail15-cpu
+/Jenkinsfile               @padhiyarshail15-cpu
+/sonar-project.properties  @padhiyarshail15-cpu
+/eslint.config.js          @padhiyarshail15-cpu
+/tsconfig*.json            @padhiyarshail15-cpu
+/vite.config.ts            @padhiyarshail15-cpu
+/.github/                  @padhiyarshail15-cpu

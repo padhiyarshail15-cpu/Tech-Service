@@ -1,0 +1,2 @@
+. "$(dirname "$0")/load-node.sh"
+yarn commitlint --edit "$1"

@@ -1,0 +1,9 @@
+# Generated / vendored (also ignored via .gitignore)
+dist
+coverage
+reports
+.scannerwork
+.yarn
+.pnp.*
+.vercel
+yarn.lock
