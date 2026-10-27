@@ -15,6 +15,8 @@ export default defineConfig([
     "dist",
     "build",
     "coverage",
+    "reports",
+    ".scannerwork",
     "node_modules",
     ".yarn",
     ".pnp.cjs",
