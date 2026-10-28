@@ -1,0 +1,76 @@
+name: PR summary
+
+# Writes a Copilot-generated summary at the top of the description of every new pull request.
+# Needs the repository secret COPILOT_PAT: a fine-grained personal access token with the
+# "Copilot Requests" permission, from an account with a GitHub Copilot plan.
+
+on:
+  pull_request:
+    types: [opened]
+
+permissions:
+  contents: read
+  pull-requests: write
+
+concurrency:
+  group: pr-summary-${{ github.event.pull_request.number }}
+  cancel-in-progress: true
+
+jobs:
+  summarize:
+    # Repository secrets are not available to Dependabot or fork pull requests
+    if: >-
+      github.actor != 'dependabot[bot]' &&
+      github.event.pull_request.head.repo.full_name == github.repository
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    env:
+      PR_NUMBER: ${{ github.event.pull_request.number }}
+    steps:
+      - name: Check COPILOT_PAT secret
+        env:
+          COPILOT_PAT: ${{ secrets.COPILOT_PAT }}
+        run: |
+          if [ -z "$COPILOT_PAT" ]; then
+            echo "::error::Repository secret COPILOT_PAT is missing (fine-grained PAT with the 'Copilot Requests' permission)."
+            exit 1
+          fi
+
+      - uses: actions/checkout@v7
+        with:
+          fetch-depth: 2 # the PR merge commit and its parents, enough to diff against the target branch
+
+      - name: Build prompt from the PR diff
+        env:
+          PR_TITLE: ${{ github.event.pull_request.title }}
+          BASE_REF: ${{ github.event.pull_request.base.ref }}
+        run: |
+          mkdir -p "$RUNNER_TEMP/pr-summary"
+          .github/scripts/pr-summary-prompt.sh "$RUNNER_TEMP/pr-summary/prompt.txt"
+
+      - uses: actions/setup-node@v7
+        with:
+          node-version-file: .nvmrc
+
+      - name: Install Copilot CLI
+        run: npm install -g @github/copilot
+
+      - name: Generate summary with Copilot
+        id: summary
+        uses: actions/ai-inference@v3
+        with:
+          prompt-file: ${{ runner.temp }}/pr-summary/prompt.txt
+          system-prompt-file: .github/prompts/pr-summary.system.txt
+          model: "" # let the Copilot CLI use its default model
+        env:
+          COPILOT_GITHUB_TOKEN: ${{ secrets.COPILOT_PAT }}
+
+      - name: Add summary to the PR description
+        env:
+          GH_TOKEN: ${{ github.token }}
+          SUMMARY_FILE: ${{ steps.summary.outputs.response-file }}
+        run: |
+          gh api "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" --jq '.body // ""' > "$RUNNER_TEMP/pr-summary/body.md"
+          python3 .github/scripts/pr-summary-body.py "$SUMMARY_FILE" "$RUNNER_TEMP/pr-summary/body.md" "$RUNNER_TEMP/pr-summary/new-body.md"
+          gh api -X PATCH "repos/$GITHUB_REPOSITORY/pulls/$PR_NUMBER" -F "body=@$RUNNER_TEMP/pr-summary/new-body.md" --silent
+          echo "Summary added to PR #$PR_NUMBER"

@@ -115,6 +115,29 @@ notes. Nothing is committed back to `main`.
 - If merging with **Squash and merge**, the PR title becomes the commit message,
   so it must follow Conventional Commits too.
 
+## Pull request summary (Copilot)
+
+When a pull request is opened, the GitHub Actions workflow
+[`pr-summary.yml`](./.github/workflows/pr-summary.yml) asks GitHub Copilot to
+summarise the diff and writes the result at the top of the PR description
+(above the PR template checklist): **What changed**, **Why** and **Review focus**.
+
+- Runs once per new PR. Dependabot and fork PRs are skipped (no access to secrets).
+- `yarn.lock` is left out of the diff and very large diffs are truncated.
+- Edit the instructions in [`pr-summary.system.txt`](./.github/prompts/pr-summary.system.txt).
+- To regenerate, re-run the workflow from the PR's _Checks_ tab; the old summary is replaced.
+- Jenkins is still the CI. This workflow only writes the summary and is not a required check.
+
+Setup (once):
+
+1. Create a **fine-grained personal access token** (GitHub → Settings → Developer settings)
+   from an account with a GitHub Copilot plan, with the **Copilot Requests** permission.
+2. Add it as a repository secret: _Settings → Secrets and variables → Actions →
+   New repository secret_, name **`COPILOT_PAT`**.
+3. Make sure GitHub Actions is enabled: _Settings → Actions → General → Allow all actions_.
+
+Each summary uses Copilot requests from the token owner's plan.
+
 ## SonarQube Cloud
 
 Analysis runs on [SonarQube Cloud](https://sonarcloud.io) (hosted by Sonar, free
