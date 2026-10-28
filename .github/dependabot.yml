@@ -5,6 +5,11 @@ updates:
     schedule:
       interval: weekly
     open-pull-requests-limit: 5
+    ignore:
+      # v10 needs conventional-changelog-writer 9+, but semantic-release 25's
+      # release-notes-generator still uses writer 8. Re-check when semantic-release updates.
+      - dependency-name: conventional-changelog-conventionalcommits
+        update-types: ["version-update:semver-major"]
     groups:
       dev-dependencies:
         dependency-type: development
