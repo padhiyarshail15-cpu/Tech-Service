@@ -132,19 +132,32 @@ pipeline {
       }
     }
 
-    stage('Deploy to Vercel (main)') {
+    stage('Deploy to test (main)') {
       when { branch 'main' }
       environment {
         VERCEL_TOKEN      = credentials('vercel-token')
         VERCEL_ORG_ID     = credentials('vercel-org-id')
         VERCEL_PROJECT_ID = credentials('vercel-project-id')
+        // Fixed test URL; the app maps it to the test API (VITE_APP_HOSTS in .env.test)
+        TEST_ALIAS        = 'tech-service-test.vercel.app'
       }
       steps {
+        // One build per merge, deployed as a staged production deployment (--skip-domain: not live)
+        // and shown on the test URL. On release day, the verified deployment is promoted in the
+        // Vercel dashboard. Production-target deployments are promoted without a rebuild, so
+        // production serves exactly what was tested.
         nvmSh '''
           npx --yes vercel pull --yes --environment=production --token="$VERCEL_TOKEN"
           npx --yes vercel build --prod --token="$VERCEL_TOKEN"
-          npx --yes vercel deploy --prebuilt --prod --token="$VERCEL_TOKEN"
+          DEPLOYMENT_URL="$(npx --yes vercel deploy --prebuilt --prod --skip-domain --token="$VERCEL_TOKEN")"
+          npx --yes vercel alias set "$DEPLOYMENT_URL" "$TEST_ALIAS" --token="$VERCEL_TOKEN"
+          mkdir -p reports
+          echo "commit $(git rev-parse --short HEAD) | staged: $DEPLOYMENT_URL | test: https://$TEST_ALIAS" \
+            | tee reports/deployment.txt
         '''
+        script {
+          currentBuild.description = readFile('reports/deployment.txt').trim()
+        }
       }
     }
   }
