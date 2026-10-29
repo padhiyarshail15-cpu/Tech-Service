@@ -17,7 +17,8 @@ Node version from `.nvmrc`. Setup, scripts, CI and SonarQube details are in [REA
 ## Architecture
 
 - `src/components/<Name>/<Name>.tsx` with `<Name>.test.tsx` next to it; one component per folder.
-- `src/hooks/` custom hooks, `src/constants/` static data, `src/types/` shared types,
+- `src/hooks/` custom hooks, `src/config/` env config (validated once, `appConfig`),
+  `src/services/` API client, `src/constants/` static data, `src/types/` shared types,
   `src/test/` test setup. `main.tsx` only bootstraps the app.
 - Import from `src` with the `@/` alias (`@/hooks/useCounter`), not `../../`.
 - Keep logic in hooks or pure functions; keep components presentational.

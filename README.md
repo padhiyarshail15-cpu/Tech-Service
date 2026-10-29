@@ -21,21 +21,24 @@ don't read your shell profile. If a hook still says `yarn not found`, run
 
 ## Scripts
 
-| Script               | What it does                                                    |
-| -------------------- | --------------------------------------------------------------- |
-| `yarn dev`           | Start the Vite dev server                                       |
-| `yarn build`         | Type-check and build for production                             |
-| `yarn typecheck`     | TypeScript type-check only (`strict` mode)                      |
-| `yarn lint`          | ESLint                                                          |
-| `yarn lint:fix`      | ESLint with auto-fix                                            |
-| `yarn lint:report`   | ESLint JSON report for SonarQube (`reports/eslint-report.json`) |
-| `yarn format`        | Format all files with Prettier                                  |
-| `yarn format:check`  | Verify formatting (used in CI)                                  |
-| `yarn test`          | Vitest in watch mode                                            |
-| `yarn test:run`      | Run tests once                                                  |
-| `yarn test:coverage` | Run tests with coverage (`coverage/lcov.info` for SonarQube)    |
-| `yarn validate`      | Everything CI checks before Sonar: lint, format, types, tests   |
-| `yarn release`       | semantic-release (run by Jenkins on `main` only)                |
+| Script               | What it does                                                     |
+| -------------------- | ---------------------------------------------------------------- |
+| `yarn dev`           | Start the Vite dev server (`development` mode)                   |
+| `yarn dev:test`      | Dev server against the test API (`--mode test`)                  |
+| `yarn dev:uat`       | Dev server against the UAT API (`--mode uat`)                    |
+| `yarn dev:prod`      | Dev server against the production API (`--mode production`)      |
+| `yarn build`         | Type-check and build (one bundle for every deployed environment) |
+| `yarn typecheck`     | TypeScript type-check only (`strict` mode)                       |
+| `yarn lint`          | ESLint                                                           |
+| `yarn lint:fix`      | ESLint with auto-fix                                             |
+| `yarn lint:report`   | ESLint JSON report for SonarQube (`reports/eslint-report.json`)  |
+| `yarn format`        | Format all files with Prettier                                   |
+| `yarn format:check`  | Verify formatting (used in CI)                                   |
+| `yarn test`          | Vitest in watch mode                                             |
+| `yarn test:run`      | Run tests once                                                   |
+| `yarn test:coverage` | Run tests with coverage (`coverage/lcov.info` for SonarQube)     |
+| `yarn validate`      | Everything CI checks before Sonar: lint, format, types, tests    |
+| `yarn release`       | semantic-release (run by Jenkins on `main` only)                 |
 
 ## Project structure
 
@@ -45,8 +48,10 @@ src/
     Counter/
       Counter.tsx
       Counter.test.tsx
+  config/          Environment config, loaded and validated once at startup
   constants/       Static data and configuration
   hooks/           Custom React hooks (+ tests)
+  services/        API client (fetch with timeout, typed results)
   types/           Shared TypeScript types
   test/            Test setup (jest-dom matchers, cleanup)
   App.tsx          Root component
@@ -60,6 +65,104 @@ Conventions:
 - Prefer data-driven rendering over copy-pasted JSX (Sonar measures duplication).
 - Never commit secrets. Use `.env.local` locally and Jenkins credentials in CI.
   Anything prefixed `VITE_` is shipped to the browser.
+
+## Environments and API base URLs
+
+Each environment has a committed, non-secret env file:
+
+| Mode          | File               | `VITE_APP_ENV` | `VITE_API_BASE_URL` | `VITE_APP_HOSTS` (deployed domain)     |
+| ------------- | ------------------ | -------------- | ------------------- | -------------------------------------- |
+| `development` | `.env.development` | `development`  | test API            | (local only)                           |
+| `test`        | `.env.test`        | `test`         | test API            | `tech-service-test.vercel.app`         |
+| `uat`         | `.env.uat`         | `uat`          | UAT API             | (local only)                           |
+| `production`  | `.env.production`  | `production`   | production API      | `my-project-sigma-seven-36.vercel.app` |
+
+How the environment is chosen:
+
+- **Local dev server**: the Vite mode decides. To reproduce an issue in a specific
+  environment, run its dev server:
+
+  ```bash
+  yarn dev:test   # or dev:uat / dev:prod
+  ```
+
+- **Deployed build**: the domain decides. Every build bundles the `test` and `production`
+  entries. At startup the app picks the one whose `VITE_APP_HOSTS` contains
+  `window.location.hostname`. Any other domain (a raw deployment URL, or `vite preview` on
+  localhost) falls back to **test**, so it can never reach the production API. One build can
+  then be tested on the test URL and promoted to production unchanged. See
+  [Deploying and releasing](#deploying-and-releasing).
+
+The app shows `Environment: <env>` in the top-right corner (in every environment, including
+production), so you can confirm which config is loaded.
+
+Unit tests run with `--mode unit` and load `.env.unit`, so they never use real API URLs.
+
+Vite loads `.env`, `.env.local`, and `.env.<mode>` (plus `.local` variants). Values in
+`.env.local` override every mode, so keep personal overrides there and do not commit them.
+
+Local dev requests go to `/api`, and the Vite dev server proxies them to
+`VITE_API_BASE_URL`, so the browser makes no cross-origin calls. Deployed builds call the
+API URL directly, so each API must allow CORS from its frontend domain.
+
+Use the API client from `@/services/apiClient`:
+
+```ts
+const result = await apiClient.get<Ticket[]>("tickets");
+if (result.ok) {
+  console.log(result.data);
+} else {
+  console.error(result.error); // { kind: "http" | "network" | "timeout" | "parse" }
+}
+```
+
+Do not set `VITE_*` variables in the Vercel dashboard; they would override the committed env
+files at build time. See [`.env.example`](./.env.example) for the variables.
+
+## Deploying and releasing
+
+Every merge to `main` is built **once** and deployed to Vercel as a **staged** production
+deployment (`vercel deploy --prebuilt --prod --skip-domain`, not live). Jenkins then points
+the test URL at it. On release day, the deployment verified on test is **promoted**: Vercel
+serves the same files on the production domain without rebuilding, and the app switches to the
+production API because the domain changed.
+
+```
+merge A → build → staged deployment A → tech-service-test.vercel.app   (bug found)
+merge B → build → staged deployment B → tech-service-test.vercel.app   (verified ✅)
+merge C → build → staged deployment C → tech-service-test.vercel.app   (next work continues)
+release day: Promote deployment B → my-project-sigma-seven-36.vercel.app serves B with the production API
+```
+
+Each Jenkins `main` build's description (and `reports/deployment.txt`) records the commit,
+the staged deployment URL and the test URL.
+
+**Release day**
+
+1. In Jenkins, open the build that was verified on test and copy its staged deployment URL.
+2. In Vercel, open **Deployments**, find that deployment (marked **Staged**), then choose
+   **⋯ → Promote** and confirm.
+3. Open `https://my-project-sigma-seven-36.vercel.app` and check that it shows `Environment: production`.
+4. If something is wrong, use **Instant Rollback** on the production deployment. The Hobby
+   plan can only roll back to the immediately previous production deployment.
+
+**One-time Vercel setup**
+
+- **Settings → Environments → Production → Branch Tracking**: turn off
+  **Auto-assign Custom Production Domains**, so nothing goes live without a promote.
+- **Settings → Deployment Protection**: turn off Vercel Authentication. Otherwise testers need
+  a Vercel login for the test URL, and the Hobby plan has only one member. This makes every
+  deployment URL public, so never put secrets in the frontend.
+- Each API must allow CORS from its domain: the test API from
+  `https://tech-service-test.vercel.app`, the production API from `https://my-project-sigma-seven-36.vercel.app`.
+
+**Adding a production domain** (for example a custom domain): add it to `VITE_APP_HOSTS` in
+`.env.production` (comma-separated), merge, verify on test and promote. Only then attach the
+domain in Vercel and add it to the API's CORS list. A domain that isn't listed falls back to
+the test API.
+
+The Hobby plan is for non-commercial use only. For paid client work, move the project to Pro;
+this pipeline works there unchanged.
 
 ## Quality checks: where each one runs
 
@@ -82,7 +185,7 @@ e.g. `feat: add service list`, `fix: handle empty response`, `test: cover counte
 Install → Lint (+report) → Format Check → Typecheck → Unit Tests + Coverage
         → SonarQube Cloud Analysis + Quality Gate   (main and pull requests only)
         → branches: Build
-        → main:     Release (semantic-release) → Deploy to Vercel
+        → main:     Release (semantic-release) → Deploy to test (staged on Vercel; promote manually)
 ```
 
 SonarQube Cloud's Free plan analyses only the main branch and pull requests, so

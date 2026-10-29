@@ -2,14 +2,17 @@ import heroImg from "@/assets/hero.png";
 import reactLogo from "@/assets/react.svg";
 import viteLogo from "@/assets/vite.svg";
 import { Counter } from "@/components/Counter/Counter";
+import { EnvText } from "@/components/EnvText/EnvText";
 import { LinkList } from "@/components/LinkList/LinkList";
 import { SpriteIcon } from "@/components/SpriteIcon/SpriteIcon";
+import { appConfig } from "@/config/env";
 import { DOC_LINKS, SOCIAL_LINKS } from "@/constants/links";
 import "./App.css";
 
 function App() {
   return (
     <>
+      <EnvText env={appConfig.env} />
       {/* Test App title and description */}
       <section id="center">
         <div className="hero">

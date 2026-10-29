@@ -22,4 +22,12 @@ describe("App", () => {
       DOC_LINKS.length + SOCIAL_LINKS.length,
     );
   });
+
+  it("shows which environment the app is running in", () => {
+    render(<App />);
+
+    expect(screen.getByText(/Environment:/)).toHaveTextContent(
+      "Environment: test",
+    );
+  });
 });
