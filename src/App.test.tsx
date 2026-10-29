@@ -23,9 +23,11 @@ describe("App", () => {
     );
   });
 
-  it("shows the environment badge for the unit test environment", () => {
+  it("shows which environment the app is running in", () => {
     render(<App />);
 
-    expect(screen.getByText("TEST")).toHaveAttribute("data-env", "test");
+    expect(screen.getByText(/Environment:/)).toHaveTextContent(
+      "Environment: test",
+    );
   });
 });

@@ -23,9 +23,9 @@
     "lint:report": "eslint . -f json -o reports/eslint-report.json",
     "format": "prettier --write .",
     "format:check": "prettier --check .",
-    "test": "vitest",
-    "test:run": "vitest run",
-    "test:coverage": "vitest run --coverage",
+    "test": "vitest --mode unit",
+    "test:run": "vitest run --mode unit",
+    "test:coverage": "vitest run --mode unit --coverage",
     "validate": "yarn lint && yarn format:check && yarn typecheck && yarn test:coverage",
     "release": "semantic-release",
     "postinstall": "husky"

@@ -73,18 +73,23 @@ Conventions:
 The API base URL is chosen at build time from the Vite _mode_. Each mode has a
 committed, non-secret env file:
 
-| Mode          | File               | `VITE_APP_ENV` | `VITE_API_BASE_URL` | Badge |
-| ------------- | ------------------ | -------------- | ------------------- | ----- |
-| `development` | `.env.development` | `development`  | test API            | DEV   |
-| `test`        | `.env.test`        | `test`         | test API            | TEST  |
-| `uat`         | `.env.uat`         | `uat`          | UAT API             | UAT   |
-| `production`  | `.env.production`  | `production`   | production API      | none  |
+| Mode          | File               | `VITE_APP_ENV` | `VITE_API_BASE_URL` |
+| ------------- | ------------------ | -------------- | ------------------- |
+| `development` | `.env.development` | `development`  | test API            |
+| `test`        | `.env.test`        | `test`         | test API            |
+| `uat`         | `.env.uat`         | `uat`          | UAT API             |
+| `production`  | `.env.production`  | `production`   | production API      |
 
 To reproduce an issue in a specific environment, run its dev server:
 
 ```bash
 yarn dev:test   # or dev:uat / dev:prod
 ```
+
+The app shows `Environment: <VITE_APP_ENV>` in the top-right corner (in every
+environment, including production), so you can confirm which config is loaded.
+
+Unit tests run with `--mode unit` and load `.env.unit`, so they never use real API URLs.
 
 Vite loads `.env`, `.env.local`, and `.env.<mode>` (plus `.local` variants). Values in
 `.env.local` override every mode, so keep personal overrides there and do not commit them.

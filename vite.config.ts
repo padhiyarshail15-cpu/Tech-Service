@@ -37,7 +37,8 @@ export default defineConfig(({ mode }) => {
       proxy: apiBaseUrl ? createApiProxy(apiBaseUrl) : undefined,
     },
     test: {
-      // Unit tests load only .env.unit (fake URL), never the real test/uat/production values
+      // Unit tests load only .env.unit (fake URL), never the real test/uat/production values.
+      // This is applied by `--mode unit` in the test scripts, since Vitest's CLI defaults to `test`.
       mode: "unit",
       environment: "jsdom",
       setupFiles: ["./src/test/setupTests.ts"],

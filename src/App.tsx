@@ -2,7 +2,7 @@ import heroImg from "@/assets/hero.png";
 import reactLogo from "@/assets/react.svg";
 import viteLogo from "@/assets/vite.svg";
 import { Counter } from "@/components/Counter/Counter";
-import { EnvBadge } from "@/components/EnvBadge/EnvBadge";
+import { EnvText } from "@/components/EnvText/EnvText";
 import { LinkList } from "@/components/LinkList/LinkList";
 import { SpriteIcon } from "@/components/SpriteIcon/SpriteIcon";
 import { appConfig } from "@/config/env";
@@ -12,7 +12,7 @@ import "./App.css";
 function App() {
   return (
     <>
-      <EnvBadge env={appConfig.env} />
+      <EnvText env={appConfig.env} />
       {/* Test App title and description */}
       <section id="center">
         <div className="hero">
