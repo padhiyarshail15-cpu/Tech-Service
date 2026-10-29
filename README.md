@@ -70,12 +70,12 @@ Conventions:
 
 Each environment has a committed, non-secret env file:
 
-| Mode          | File               | `VITE_APP_ENV` | `VITE_API_BASE_URL` | `VITE_APP_HOSTS` (deployed domain) |
-| ------------- | ------------------ | -------------- | ------------------- | ---------------------------------- |
-| `development` | `.env.development` | `development`  | test API            | (local only)                       |
-| `test`        | `.env.test`        | `test`         | test API            | `tech-service-test.vercel.app`     |
-| `uat`         | `.env.uat`         | `uat`          | UAT API             | (local only)                       |
-| `production`  | `.env.production`  | `production`   | production API      | `tech-service.vercel.app`          |
+| Mode          | File               | `VITE_APP_ENV` | `VITE_API_BASE_URL` | `VITE_APP_HOSTS` (deployed domain)     |
+| ------------- | ------------------ | -------------- | ------------------- | -------------------------------------- |
+| `development` | `.env.development` | `development`  | test API            | (local only)                           |
+| `test`        | `.env.test`        | `test`         | test API            | `tech-service-test.vercel.app`         |
+| `uat`         | `.env.uat`         | `uat`          | UAT API             | (local only)                           |
+| `production`  | `.env.production`  | `production`   | production API      | `my-project-sigma-seven-36.vercel.app` |
 
 How the environment is chosen:
 
@@ -131,7 +131,7 @@ production API because the domain changed.
 merge A → build → staged deployment A → tech-service-test.vercel.app   (bug found)
 merge B → build → staged deployment B → tech-service-test.vercel.app   (verified ✅)
 merge C → build → staged deployment C → tech-service-test.vercel.app   (next work continues)
-release day: Promote deployment B → tech-service.vercel.app serves B with the production API
+release day: Promote deployment B → my-project-sigma-seven-36.vercel.app serves B with the production API
 ```
 
 Each Jenkins `main` build's description (and `reports/deployment.txt`) records the commit,
@@ -142,7 +142,7 @@ the staged deployment URL and the test URL.
 1. In Jenkins, open the build that was verified on test and copy its staged deployment URL.
 2. In Vercel, open **Deployments**, find that deployment (marked **Staged**), then choose
    **⋯ → Promote** and confirm.
-3. Open `https://tech-service.vercel.app` and check that it shows `Environment: production`.
+3. Open `https://my-project-sigma-seven-36.vercel.app` and check that it shows `Environment: production`.
 4. If something is wrong, use **Instant Rollback** on the production deployment. The Hobby
    plan can only roll back to the immediately previous production deployment.
 
@@ -154,7 +154,7 @@ the staged deployment URL and the test URL.
   a Vercel login for the test URL, and the Hobby plan has only one member. This makes every
   deployment URL public, so never put secrets in the frontend.
 - Each API must allow CORS from its domain: the test API from
-  `https://tech-service-test.vercel.app`, the production API from `https://tech-service.vercel.app`.
+  `https://tech-service-test.vercel.app`, the production API from `https://my-project-sigma-seven-36.vercel.app`.
 
 **Adding a production domain** (for example a custom domain): add it to `VITE_APP_HOSTS` in
 `.env.production` (comma-separated), merge, verify on test and promote. Only then attach the

@@ -124,7 +124,7 @@ const TEST_ENTRY = {
 const PROD_ENTRY = {
   VITE_APP_ENV: "production",
   VITE_API_BASE_URL: "https://api.example.com",
-  VITE_APP_HOSTS: "tech-service.vercel.app, www.example.com",
+  VITE_APP_HOSTS: "my-project-sigma-seven-36.vercel.app, www.example.com",
 };
 const DEPLOYED = [TEST_ENTRY, PROD_ENTRY];
 
@@ -143,7 +143,7 @@ describe("parseHosts", () => {
 
 describe("resolveDeployedEnv", () => {
   it.each([
-    ["tech-service.vercel.app", PROD_ENTRY],
+    ["my-project-sigma-seven-36.vercel.app", PROD_ENTRY],
     ["WWW.EXAMPLE.COM", PROD_ENTRY],
     ["tech-service-test.vercel.app", TEST_ENTRY],
   ])("maps %s to its environment", (hostname, expected) => {
@@ -170,14 +170,18 @@ describe("loadAppConfig", () => {
       isDevServer: true,
       buildEnv: valid,
       deployed: DEPLOYED,
-      hostname: "tech-service.vercel.app",
+      hostname: "my-project-sigma-seven-36.vercel.app",
     });
 
     expect(config).toMatchObject({ env: "uat", apiBaseUrl: "/api" });
   });
 
   it.each([
-    ["tech-service.vercel.app", "production", "https://api.example.com/"],
+    [
+      "my-project-sigma-seven-36.vercel.app",
+      "production",
+      "https://api.example.com/",
+    ],
     ["tech-service-test.vercel.app", "test", "https://api-test.example.com/"],
   ])(
     "uses the domain when deployed: %s runs as %s",
