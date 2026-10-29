@@ -181,3 +181,17 @@
     border-right-color: var(--border);
   }
 }
+
+.env-badge {
+  position: fixed;
+  top: 12px;
+  right: 12px;
+  z-index: 1000;
+  padding: 2px 8px;
+  border-radius: 999px;
+  background: #f59e0b;
+  color: #1c1917;
+  font-size: 12px;
+  font-weight: 600;
+  letter-spacing: 0.05em;
+}

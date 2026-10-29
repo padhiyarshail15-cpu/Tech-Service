@@ -22,4 +22,10 @@ describe("App", () => {
       DOC_LINKS.length + SOCIAL_LINKS.length,
     );
   });
+
+  it("shows the environment badge for the unit test environment", () => {
+    render(<App />);
+
+    expect(screen.getByText("TEST")).toHaveAttribute("data-env", "test");
+  });
 });

@@ -11,7 +11,8 @@ These files define the quality gates. Changes are reviewed by the code owners in
   pipeline stages, new `sonar.exclusions`, `continue-on-error`, or `--no-verify`. Fix the
   underlying problem instead, or explain in the PR why the change is needed.
 - Secrets come only from Jenkins credentials or GitHub repository secrets. Never hard-code
-  them, print them, or commit `.env*` files.
+  them, print them, or commit `.env*.local` files. Committed `.env.<mode>` files hold only
+  non-secret `VITE_*` values (base URLs, env names).
 - SonarQube Cloud: keep `sonar.organization` and `sonar.projectKey`
   (`padhiyarshail15-cpu_Tech-Service`). The Free plan analyses only `main` and pull requests,
   so the Sonar stage stays limited to those builds.

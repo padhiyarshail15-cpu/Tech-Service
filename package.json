@@ -10,7 +10,12 @@
   "packageManager": "yarn@4.18.1",
   "scripts": {
     "dev": "vite",
+    "dev:test": "vite --mode test",
+    "dev:uat": "vite --mode uat",
+    "dev:prod": "vite --mode production",
     "build": "tsc -b && vite build",
+    "build:test": "tsc -b && vite build --mode test",
+    "build:uat": "tsc -b && vite build --mode uat",
     "preview": "vite preview",
     "typecheck": "tsc -b",
     "lint": "eslint .",

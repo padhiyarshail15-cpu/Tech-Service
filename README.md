@@ -23,8 +23,13 @@ don't read your shell profile. If a hook still says `yarn not found`, run
 
 | Script               | What it does                                                    |
 | -------------------- | --------------------------------------------------------------- |
-| `yarn dev`           | Start the Vite dev server                                       |
+| `yarn dev`           | Start the Vite dev server (`development` mode)                  |
+| `yarn dev:test`      | Dev server against the test API (`--mode test`)                 |
+| `yarn dev:uat`       | Dev server against the UAT API (`--mode uat`)                   |
+| `yarn dev:prod`      | Dev server against the production API (`--mode production`)     |
 | `yarn build`         | Type-check and build for production                             |
+| `yarn build:test`    | Type-check and build with the test API                          |
+| `yarn build:uat`     | Type-check and build with the UAT API                           |
 | `yarn typecheck`     | TypeScript type-check only (`strict` mode)                      |
 | `yarn lint`          | ESLint                                                          |
 | `yarn lint:fix`      | ESLint with auto-fix                                            |
@@ -45,8 +50,10 @@ src/
     Counter/
       Counter.tsx
       Counter.test.tsx
+  config/          Environment config, loaded and validated once at startup
   constants/       Static data and configuration
   hooks/           Custom React hooks (+ tests)
+  services/        API client (fetch with timeout, typed results)
   types/           Shared TypeScript types
   test/            Test setup (jest-dom matchers, cleanup)
   App.tsx          Root component
@@ -60,6 +67,47 @@ Conventions:
 - Prefer data-driven rendering over copy-pasted JSX (Sonar measures duplication).
 - Never commit secrets. Use `.env.local` locally and Jenkins credentials in CI.
   Anything prefixed `VITE_` is shipped to the browser.
+
+## Environments and API base URLs
+
+The API base URL is chosen at build time from the Vite _mode_. Each mode has a
+committed, non-secret env file:
+
+| Mode          | File               | `VITE_APP_ENV` | `VITE_API_BASE_URL` | Badge |
+| ------------- | ------------------ | -------------- | ------------------- | ----- |
+| `development` | `.env.development` | `development`  | test API            | DEV   |
+| `test`        | `.env.test`        | `test`         | test API            | TEST  |
+| `uat`         | `.env.uat`         | `uat`          | UAT API             | UAT   |
+| `production`  | `.env.production`  | `production`   | production API      | none  |
+
+To reproduce an issue in a specific environment, run its dev server:
+
+```bash
+yarn dev:test   # or dev:uat / dev:prod
+```
+
+Vite loads `.env`, `.env.local`, and `.env.<mode>` (plus `.local` variants). Values in
+`.env.local` override every mode, so keep personal overrides there and do not commit them.
+
+Local dev requests go to `/api`, and the Vite dev server proxies them to
+`VITE_API_BASE_URL`, so the browser makes no cross-origin calls. Production builds call the
+API URL directly, so the API must allow CORS from the frontend origin.
+
+Use the API client from `@/services/apiClient`:
+
+```ts
+const result = await apiClient.get<Ticket[]>("tickets");
+if (result.ok) {
+  console.log(result.data);
+} else {
+  console.error(result.error); // { kind: "http" | "network" | "timeout" | "parse" }
+}
+```
+
+Deployments: Jenkins runs `vercel build --prod`, which builds in `production` mode and
+uses `.env.production`. Do not set `VITE_API_BASE_URL` or `VITE_APP_ENV` in the Vercel
+dashboard, because dashboard values override the committed env files at build time.
+See [`.env.example`](./.env.example) for the variables.
 
 ## Quality checks: where each one runs
 
