@@ -1,5 +1,10 @@
 import { describe, expect, it } from "vitest";
-import { parseEnv } from "@/config/env";
+import {
+  loadAppConfig,
+  parseEnv,
+  parseHosts,
+  resolveDeployedEnv,
+} from "@/config/env";
 
 const DEFAULT_TIMEOUT_MS = 10_000;
 
@@ -108,5 +113,99 @@ describe("parseEnv", () => {
         { useDevProxy: false },
       ),
     ).toThrow("VITE_API_TIMEOUT_MS must be a positive integer");
+  });
+});
+
+const TEST_ENTRY = {
+  VITE_APP_ENV: "test",
+  VITE_API_BASE_URL: "https://api-test.example.com",
+  VITE_APP_HOSTS: "tech-service-test.vercel.app",
+};
+const PROD_ENTRY = {
+  VITE_APP_ENV: "production",
+  VITE_API_BASE_URL: "https://api.example.com",
+  VITE_APP_HOSTS: "tech-service.vercel.app, www.example.com",
+};
+const DEPLOYED = [TEST_ENTRY, PROD_ENTRY];
+
+describe("parseHosts", () => {
+  it("splits, trims, lowercases and drops empty hosts", () => {
+    expect(parseHosts(" A.example.com, ,b.example.com ")).toEqual([
+      "a.example.com",
+      "b.example.com",
+    ]);
+  });
+
+  it("returns no hosts when the value is missing", () => {
+    expect(parseHosts(undefined)).toEqual([]);
+  });
+});
+
+describe("resolveDeployedEnv", () => {
+  it.each([
+    ["tech-service.vercel.app", PROD_ENTRY],
+    ["WWW.EXAMPLE.COM", PROD_ENTRY],
+    ["tech-service-test.vercel.app", TEST_ENTRY],
+  ])("maps %s to its environment", (hostname, expected) => {
+    expect(resolveDeployedEnv(hostname, DEPLOYED)).toBe(expected);
+  });
+
+  it.each(["tech-service-abc123.vercel.app", "localhost"])(
+    "falls back to test for the unknown host %s",
+    (hostname) => {
+      expect(resolveDeployedEnv(hostname, DEPLOYED)).toBe(TEST_ENTRY);
+    },
+  );
+
+  it("throws when the host is unknown and there is no fallback", () => {
+    expect(() => resolveDeployedEnv("localhost", [PROD_ENTRY])).toThrow(
+      'No deployed environment for "localhost" and no "test" fallback',
+    );
+  });
+});
+
+describe("loadAppConfig", () => {
+  it("uses the build-time mode and the /api proxy on the dev server", () => {
+    const config = loadAppConfig({
+      isDevServer: true,
+      buildEnv: valid,
+      deployed: DEPLOYED,
+      hostname: "tech-service.vercel.app",
+    });
+
+    expect(config).toMatchObject({ env: "uat", apiBaseUrl: "/api" });
+  });
+
+  it.each([
+    ["tech-service.vercel.app", "production", "https://api.example.com/"],
+    ["tech-service-test.vercel.app", "test", "https://api-test.example.com/"],
+  ])(
+    "uses the domain when deployed: %s runs as %s",
+    (hostname, env, apiBaseUrl) => {
+      const config = loadAppConfig({
+        isDevServer: false,
+        buildEnv: valid,
+        deployed: DEPLOYED,
+        hostname,
+      });
+
+      expect(config).toMatchObject({ env, apiBaseUrl });
+    },
+  );
+});
+
+describe("committed deployed environments", () => {
+  it("contains a valid test and production entry from the .env files", () => {
+    const envs = __DEPLOYED_ENVIRONMENTS__.map(
+      (entry) => parseEnv(entry, { useDevProxy: false }).env,
+    );
+
+    expect(envs).toEqual(["test", "production"]);
+  });
+
+  it("gives every deployed environment at least one host", () => {
+    for (const entry of __DEPLOYED_ENVIRONMENTS__) {
+      expect(parseHosts(entry.VITE_APP_HOSTS)).not.toHaveLength(0);
+    }
   });
 });

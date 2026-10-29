@@ -19,6 +19,16 @@ function createApiProxy(apiBaseUrl: string) {
   };
 }
 
+// Modes deployed to Vercel. Every build bundles all of them, and the app picks one at runtime
+// from the domain, so the exact deployment verified on test can be promoted to production.
+const DEPLOYED_MODES = ["test", "production"] as const;
+
+function loadDeployedEnvironments() {
+  return DEPLOYED_MODES.map((deployedMode) =>
+    loadEnv(deployedMode, process.cwd(), "VITE_"),
+  ).filter((env) => Boolean(env.VITE_APP_HOSTS));
+}
+
 export default defineConfig(({ mode }) => {
   const { VITE_API_BASE_URL: apiBaseUrl } = loadEnv(
     mode,
@@ -28,6 +38,9 @@ export default defineConfig(({ mode }) => {
 
   return {
     plugins: [react()],
+    define: {
+      __DEPLOYED_ENVIRONMENTS__: JSON.stringify(loadDeployedEnvironments()),
+    },
     resolve: {
       alias: {
         "@": fileURLToPath(new URL("./src", import.meta.url)),

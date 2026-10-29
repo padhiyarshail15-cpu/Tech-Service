@@ -15,6 +15,7 @@ const APP_ENVS: readonly AppEnv[] = [
 ];
 const DEFAULT_TIMEOUT_MS = 10_000;
 const DEV_PROXY_BASE_URL = "/api";
+const FALLBACK_DEPLOYED_ENV: AppEnv = "test";
 
 const isAppEnv = (value: string): value is AppEnv =>
   (APP_ENVS as readonly string[]).includes(value);
@@ -73,6 +74,62 @@ export function parseEnv(
   };
 }
 
-export const appConfig = parseEnv(import.meta.env, {
-  useDevProxy: import.meta.env.DEV,
+export function parseHosts(value: string | undefined): string[] {
+  return (value ?? "")
+    .split(",")
+    .map((host) => host.trim().toLowerCase())
+    .filter((host) => host !== "");
+}
+
+// Picks the environment whose VITE_APP_HOSTS lists the hostname. Unknown hosts (raw deployment
+// URLs, local `vite preview`) use the fallback so they can never reach the production API.
+export function resolveDeployedEnv(
+  hostname: string,
+  deployed: readonly EnvVars[],
+  fallbackEnv: AppEnv = FALLBACK_DEPLOYED_ENV,
+): EnvVars {
+  const host = hostname.toLowerCase();
+  const match = deployed.find((entry) =>
+    parseHosts(entry.VITE_APP_HOSTS).includes(host),
+  );
+  if (match) {
+    return match;
+  }
+  const fallback = deployed.find((entry) => entry.VITE_APP_ENV === fallbackEnv);
+  if (!fallback) {
+    throw new Error(
+      `No deployed environment for "${hostname}" and no "${fallbackEnv}" fallback`,
+    );
+  }
+  return fallback;
+}
+
+export interface LoadAppConfigOptions {
+  isDevServer: boolean;
+  buildEnv: EnvVars;
+  deployed: readonly EnvVars[];
+  hostname: string;
+}
+
+// Dev server: the Vite mode decides (yarn dev:test, dev:uat, ...). Deployed: the domain decides,
+// so one build serves test on the test URL and production once promoted to the prod domain.
+export function loadAppConfig({
+  isDevServer,
+  buildEnv,
+  deployed,
+  hostname,
+}: LoadAppConfigOptions): AppConfig {
+  if (isDevServer) {
+    return parseEnv(buildEnv, { useDevProxy: true });
+  }
+  return parseEnv(resolveDeployedEnv(hostname, deployed), {
+    useDevProxy: false,
+  });
+}
+
+export const appConfig = loadAppConfig({
+  isDevServer: import.meta.env.DEV,
+  buildEnv: import.meta.env,
+  deployed: __DEPLOYED_ENVIRONMENTS__,
+  hostname: globalThis.location.hostname,
 });
